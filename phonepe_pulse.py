@@ -19,7 +19,6 @@ img = Image.open("E:\downloads\PhonePe-Logo.wine.png")
 my_pic = Image.open("E:\downloads\pic.jpg")
 st.set_page_config(page_title='PhonePe Pulse, Data Visualization and Exploration:', page_icon=img, layout='wide')
 st.title(' PhonePe Pulse Data Visualization ')
-st.write("\n\n\n\n\n\n\n\n\n\n")
 
 #read from aggreated transaction path
 path1 = r"E:\ML\pulse\data\aggregated\transaction\country\india\state"
