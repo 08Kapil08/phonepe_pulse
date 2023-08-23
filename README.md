@@ -6,6 +6,6 @@ Phonepe Pulse Project is a user-friendly tool for data visualization and explora
 # Technologies:
 Phonepe Pulse is built using the following technologies: • Python - Programming language used to build the tool. • Pandas - Library used for data manipulation and analysis. • MySQL - Database used to store the data. • mysql-connector-python - Library used for connecting to MySQL database. • Streamlit - Library used for building the user interface. • Plotly - Library used for data visualization.
 
-## To get started with Phonepe Pulse, follow the steps below:
-##1.Install the required libraries using the pip install command. pandas, json, os, mysql.connector, streamlit.
-##2.
+# To get started with Phonepe Pulse, follow the steps below:
+1.Install the required libraries using the pip install command. pandas, json, os, mysql.connector, streamlit.\n
+-2.
