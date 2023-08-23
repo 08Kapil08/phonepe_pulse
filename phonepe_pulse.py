@@ -1,6 +1,8 @@
 import os
 import json
+import requests
 import pandas as pd
+import numpy as np
 from PIL import Image
 import mysql.connector
 import sqlalchemy
@@ -17,6 +19,7 @@ img = Image.open("E:\downloads\PhonePe-Logo.wine.png")
 my_pic = Image.open("E:\downloads\pic.jpg")
 st.set_page_config(page_title='PhonePe Pulse', page_icon=img, layout='wide')
 st.title(' PhonePe Pulse Data Visualization ')
+st.write("\n\n\n\n\n\n\n\n\n\n")
 
 #read from aggreated transaction path
 path1 = r"E:\ML\pulse\data\aggregated\transaction\country\india\state"
@@ -464,20 +467,28 @@ if SELECT == "Contact":
                         }
     col1, col2 = st.columns(2)
     with col1:
-        st.image(my_pic)
+        st.image(my_pic,width=500)
     with col2:
         st.title(name)
         st.subheader("An Aspiring DATA-SCIENTIST.... !")
         st.write("---")
         st.subheader(mail)
-    # st.write("#")
-    cols = st.columns(len(social_media))
-    for index, (platform, link) in enumerate(social_media.items()):
-        cols[index].write(f"[{platform}]({link})")
+        st.write("\n\n\n\n")
+        cols = st.columns(len(social_media))
+        for index, (platform, link) in enumerate(social_media.items()):
+            cols[index].write(f"[{platform}]({link})")
 
 if SELECT == "Search":
     Topic = ["", "Brand", "District", "Registered-users", "Top-Transactions", "Transaction-Type"]
-    choice_topic = st.selectbox("Search by", Topic)
+    custom_topics = ["India Transaction Data", "India User Data"]
+    all_topics = Topic + custom_topics
+
+    choice_topic = st.selectbox("Search by", all_topics)
+
+    if choice_topic in custom_topics:
+        st.markdown(f'<font color="red">{choice_topic}</font>', unsafe_allow_html=True)
+    else:
+        st.write("You selected:", choice_topic)
     st.snow()
 
 #  <---------------CREATING FUNCTIONS FOR QUERY SEARCH TO GET THE DATA FROM SQLlite---------------->
@@ -756,39 +767,155 @@ if SELECT == "Search":
                 st.subheader(f'{district}')
                 st.write(registered_user_district(choice_state, choice_year, district))
 
+    if choice_topic == "India Transaction Data":
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            trans_year_ind = st.selectbox('Year', ('2018','2019','2020','2021','2022'),key='trans_year_ind')
+        with col2:
+            trans_quarter_ind = st.selectbox('Quarter', ('1','2','3','4'),key='trans_quarter_ind')
+        with col3:
+            trans_type_ind= st.selectbox('Transaction Type', ('Recharge & bill payments','Peer-to-peer payments',
+            'Merchant payments','Financial Services','Others'),key='trans_type_ind')
+            
+        # Transaction Analysis bar chart query
+        cursor.execute(f"SELECT State, transaction_amount FROM aggregated_transaction WHERE Year = '{trans_year_ind}' AND Quater = '{trans_quarter_ind}' AND transaction_type = '{trans_type_ind}';")
+        trans_res_ind = cursor.fetchall()
+        trans_res_ind_df = pd.DataFrame(np.array(trans_res_ind ), columns=['State', 'transaction_amount'])
+        trans_res2_ind_df = trans_res_ind_df.set_index(pd.Index(range(1, len(trans_res_ind_df)+1)))
+    
+        
+        # Transaction Analysis table query
+        cursor.execute(f"SELECT State, transaction_count, transaction_amount FROM aggregated_transaction WHERE Year = '{trans_year_ind}' AND Quater = '{trans_quarter_ind}' AND transaction_type = '{trans_type_ind}';")
+        trans_res_ana_ind = cursor.fetchall()
+        trans_res_ana_ind_df = pd.DataFrame(np.array(trans_res_ana_ind), columns=['State','transaction_count','transaction_amount'])
+        trans_res2_ana_ind_df = trans_res_ana_ind_df.set_index(pd.Index(range(1, len(trans_res_ana_ind_df)+1)))
+
+        # Total Transaction Amount table query
+        cursor.execute(f"SELECT SUM(transaction_amount), AVG(transaction_amount) FROM aggregated_transaction WHERE Year = '{trans_year_ind}' AND Quater = '{trans_quarter_ind}' AND transaction_type = '{trans_type_ind}';")
+        trans_res_amount_ind = cursor.fetchall()
+        trans_res_amount_ind_df = pd.DataFrame(np.array(trans_res_amount_ind), columns=['Total','Average'])
+        trans_res2_amount_ind_df = trans_res_amount_ind_df.set_index(['Average'])
+        
+        # Total Transaction Count table query
+        cursor.execute(f"SELECT SUM(transaction_count), AVG(transaction_count) FROM aggregated_transaction WHERE Year = '{trans_year_ind}' AND Quater = '{trans_quarter_ind}' AND transaction_type = '{trans_type_ind}';")
+        trans_res_count_ind= cursor.fetchall()
+        trans_res_count_ind_df = pd.DataFrame(np.array(trans_res_count_ind), columns=['Total','Average'])
+        trans_res_count2_ind = trans_res_count_ind_df.set_index(['Average'])
+         
+        # All India Total Transaction calculation Table
+        st.header('Total calculation')
+        
+        col4, col5 = st.columns(2)
+        
+        with col4:
+            st.subheader('Transaction Analysis')
+            st.dataframe(trans_res2_ana_ind_df)
+        with col5:
+            st.subheader('Transaction Amount')
+            st.dataframe(trans_res2_amount_ind_df)
+        
+        #visualization for Transaction
+        # Drop a State column 
+        trans_res_ind_df.drop(columns=['State'], inplace=True)
+        # Clone the gio data
+        url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+        response = requests.get(url)
+        data1 = json.loads(response.content)
+        # Extract state names and sort them in alphabetical order
+        state_names_tra = [feature['properties']['ST_NM'] for feature in data1['features']]
+        state_names_tra.sort()
+        # Create a DataFrame with the state names column
+        df_state_names_tra = pd.DataFrame({'State': state_names_tra})
+        # Combine the Gio State name 
+        df_state_names_tra['transaction_amount']=trans_res_ind_df
+        # convert dataframe to csv file
+        df_state_names_tra.to_csv('State_trans.csv', index=False)
+        # Read csv
+        df_tra = pd.read_csv('State_trans.csv')
+        
+         # Geo plot
+        fig_tra = px.choropleth(
+            df_tra,
+            geojson="https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
+            featureidkey='properties.ST_NM',locations='State',color='transaction_amount',color_continuous_scale='thermal',title = 'Transaction Analysis')
+        fig_tra.update_geos(fitbounds="locations", visible=False)
+        fig_tra.update_layout(title_font=dict(size=33), height=600)
+        st.plotly_chart(fig_tra,use_container_width=True)
+
+        # All India Transaction Analysis Bar chart
+        trans_res2_ind_df['State'] = trans_res2_ind_df['State'].astype(str)
+        trans_res2_ind_df['transaction_amount'] = trans_res2_ind_df['transaction_amount'].astype(float)
+        trans_res2_ind_df_fig= px.bar(trans_res2_ind_df , x = 'State', y ='transaction_amount', color ='transaction_amount', color_continuous_scale = 'thermal', title = 'Transaction Analysis Chart', height = 600,)
+        trans_res2_ind_df_fig.update_layout(title_font=dict(size=33))
+        st.plotly_chart(trans_res2_ind_df_fig,use_container_width=True)
+
+    if choice_topic == "India User Data":
+        col1, col2 = st.columns(2)
+        with col1:
+            user_year_ind = st.selectbox('Year', ('2018','2019','2020','2021','2022'),key='user_year_ind')
+        with col2:
+            user_quarter_ind = st.selectbox('Quarter', ('1','2','3','4'),key='user_quarter_ind')
+            
+
+        # User Analysis Bar chart query
+        cursor.execute(f"SELECT State, SUM(Count) FROM aggregated_user WHERE Year = '{user_year_ind}' AND Quater = '{user_quarter_ind}' GROUP BY State;")
+        user_res_ind = cursor.fetchall()
+        user_res_ind_df = pd.DataFrame(np.array(user_res_ind), columns=['State', 'Count'])
+        user_res2_ind_df = user_res_ind_df.set_index(pd.Index(range(1, len(user_res_ind_df)+1)))
+        
+         # Total User Count table query
+        cursor.execute(f"SELECT SUM(Count), AVG(Count) FROM aggregated_user WHERE Year = '{user_year_ind}' AND Quater = '{user_quarter_ind}';")
+        user_res_count_ind= cursor.fetchall()
+        user_res_count_ind_df = pd.DataFrame(np.array(user_res_count_ind), columns=['Total','Average'])
+        user_res2_count_ind_df = user_res_count_ind_df.set_index(['Average'])
+
+
+        
+        #visualization for User
+        # Drop a State column 
+        user_res_ind_df.drop(columns=['State'], inplace=True)
+        # Clone the gio data
+        url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+        response = requests.get(url)
+        data2 = json.loads(response.content)
+        # Extract state names and sort them in alphabetical order
+        state_names_use = [feature['properties']['ST_NM'] for feature in data2['features']]
+        state_names_use.sort()
+        # Create a DataFrame with the state names column
+        df_state_names_use = pd.DataFrame({'State': state_names_use})
+        # Combine the Gio State name with df_in_tr_tab_qry_rslt
+        df_state_names_use['Count']=user_res_ind_df
+        # convert dataframe to csv file
+        df_state_names_use.to_csv('State_user.csv', index=False)
+        # Read csv
+        df_use = pd.read_csv('State_user.csv')
+        # Geo plot
+        fig_use = px.choropleth(
+            df_use,
+            geojson="https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson",
+            featureidkey='properties.ST_NM',locations='State',color='Count',color_continuous_scale='thermal',title = 'User Analysis')
+        fig_use.update_geos(fitbounds="locations", visible=False)
+        fig_use.update_layout(title_font=dict(size=33), height=600)
+        st.plotly_chart(fig_use,use_container_width=True)
+
+        # All India User Analysis Bar chart
+        user_res2_ind_df['State'] = user_res2_ind_df['State'].astype(str)
+        user_res2_ind_df['Count'] = user_res2_ind_df['Count'].astype(int)
+        user_res2_ind_df_fig = px.bar(user_res2_ind_df , x = 'State', y ='Count', color ='Count', color_continuous_scale = 'thermal', title = 'User Analysis Chart', height = 600,)
+        user_res2_ind_df_fig.update_layout(title_font=dict(size=33))
+        st.plotly_chart(user_res2_ind_df_fig,use_container_width=True)
+   
+
+        # All India Total User calculation Table
+        st.header('Total calculation')
+
+        col3, col4 = st.columns(2)
+        with col3:
+            st.subheader('User Analysis')
+            st.dataframe(user_res2_ind_df)
+        with col4:
+            st.subheader('User Count')
+            st.dataframe(user_res2_count_ind_df)
+
 # Close the MySQL connection
 mysql_connection.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
