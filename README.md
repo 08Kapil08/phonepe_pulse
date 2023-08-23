@@ -8,4 +8,4 @@ Phonepe Pulse is built using the following technologies: • Python - Programmin
 
 # To get started with Phonepe Pulse, follow the steps below:
 1.Install the required libraries using the pip install command. pandas, json, os, mysql.connector, streamlit.\n
--2.
+2.
