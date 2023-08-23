@@ -17,7 +17,7 @@ from streamlit_option_menu import option_menu
 
 img = Image.open("E:\downloads\PhonePe-Logo.wine.png")
 my_pic = Image.open("E:\downloads\pic.jpg")
-st.set_page_config(page_title='PhonePe Pulse', page_icon=img, layout='wide')
+st.set_page_config(page_title='PhonePe Pulse, Data Visualization and Exploration:', page_icon=img, layout='wide')
 st.title(' PhonePe Pulse Data Visualization ')
 st.write("\n\n\n\n\n\n\n\n\n\n")
 
